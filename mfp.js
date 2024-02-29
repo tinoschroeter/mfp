@@ -1,35 +1,53 @@
+#!/usr/bin/env node
+
 const blessed = require("blessed");
 const RSSParser = require("rss-parser");
 const parser = new RSSParser();
+const music = {};
+let musicState = false;
 
-const { spawn } = require("child_process");
-let mplayer;
-let prevSong = "";
-let status = false;
+const mpd = require("mpd");
+const cmd = mpd.cmd;
+const client = mpd.connect({
+  port: 6600,
+  host: "localhost",
+});
 
-const startPlayer = () => {
-  mplayer = spawn("mplayer", [
-    "-slave",
-    "-quiet",
-    "https://datashat.net/music_for_programming_67-datassette.mp3",
-  ]);
+const formatSeconds = (totalSeconds) => {
+  totalSeconds = Math.round(totalSeconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
 
-  mplayer.on("exit", (code) => {
-    console.log(`MPlayer exited with code ${code}`);
+  const minutesStr = minutes.toString().padStart(2, "0");
+  const secondsStr = seconds.toString().padStart(2, "0");
+
+  return `${minutesStr}:${secondsStr}`;
+};
+
+const play = (streamUrl) => {
+  client.sendCommand(cmd("clear", []), (err) => {
+    if (err) throw err;
+    client.sendCommand(cmd("add", [streamUrl]), (err) => {
+      if (err) throw err;
+      client.sendCommand(cmd("play", []), (err) => {
+        if (err) throw err;
+      });
+    });
   });
 };
 
-const sendCommand = (command) => {
-  mplayer.stdin.write(command + "\n");
+const pausePlay = () => {
+  if (musicState) {
+    client.sendCommand(cmd("pause", [1]), (err, msg) => {
+      if (err) throw err;
+    });
+  } else {
+    client.sendCommand(cmd("play", []), (err, msg) => {
+      if (err) throw err;
+    });
+  }
+  musicState = !musicState;
 };
-
-const nextSong = (songPath) => {
-  sendCommand(`loadfile ${songPath}`);
-};
-
-startPlayer();
-
-const music = {};
 
 const screen = blessed.screen({
   smartCSR: true,
@@ -43,7 +61,7 @@ const feedList = blessed.list({
   height: "90%",
   keys: true,
   vi: true,
-  label: "Music For Programming",
+  label: " Music For Programming ",
   border: { type: "line" },
   padding: { left: 1 },
   style: {
@@ -60,9 +78,9 @@ const player = blessed.box({
   left: "0",
   width: "100%",
   height: "10%",
-  content: `> {bold}play{/bold}: {red-fg}Episode 62: Our Grey Lives{/red-fg}`,
+  content: `> `,
   tags: true,
-  label: "Player",
+  label: " Player ",
   border: {
     type: "line",
   },
@@ -70,7 +88,7 @@ const player = blessed.box({
   style: {
     fg: "white",
     border: {
-      fg: "#f0f0f0",
+      fg: "white",
     },
     label: {
       fg: "green",
@@ -110,29 +128,51 @@ async function loadAndDisplayFeed(url) {
     feedList.setItems(items);
     screen.render();
   } catch (error) {
-    console.error("Fehler beim Laden des RSS-Feeds:", error);
+    console.error("Error loading the RSS feed.", error);
   }
 }
 
 loadAndDisplayFeed("https://musicforprogramming.net/rss.xml");
 
-screen.key("space", () => {
+screen.key(["space"], (ch, key) => {
+  pausePlay();
+});
+screen.key("enter", () => {
   const selectedItem = feedList.getItem(feedList.selected).getContent();
   const mp3 = music[selectedItem].mp3;
 
-  if (prevSong === selectedItem) {
-    sendCommand("pause");
-    status = !status;
-  } else {
-    prevSong = selectedItem;
-    status = true;
-    nextSong(mp3);
-  }
-
-  const play = status ? "play" : "pause";
-  player.setContent(`> {bold}${play}{/bold}: {red-fg}${selectedItem}{/red-fg}`);
+  play(mp3);
+  player.setContent(`> {bold}${mp3}{/bold}: {red-fg}${selectedItem}{/red-fg}`);
   screen.render();
 });
+
+setInterval(() => {
+  client.sendCommand(cmd("status", []), (err, msg) => {
+    let elapsed = null;
+    let duration = null;
+    let state = null;
+    let bitrate = null;
+    let audio = null;
+
+    if (err) throw err;
+    const status = mpd.parseKeyValueMessage(msg);
+    elapsed = formatSeconds(status.elapsed);
+    duration = formatSeconds(status.duration);
+    state = status.state;
+    bitrate = status.bitrate + " kbps";
+    audio = status.audio;
+
+    client.sendCommand(cmd("currentsong", []), (err, msg) => {
+      if (err) throw err;
+      const songInfo = mpd.parseKeyValueMessage(msg).Title;
+
+      player.setContent(
+        `> {bold}{green-fg}[${state}]{/green-fg} ${songInfo}{/bold}: {red-fg}${elapsed} ${duration} ${bitrate} ${audio}{/red-fg}`,
+      );
+      screen.render();
+    });
+  });
+}, 500);
 
 screen.key("h", function () {
   if (helpBox.hidden) {
@@ -147,16 +187,7 @@ screen.key("h", function () {
   }
 });
 
-screen.key(["+"], (ch, key) => {
-  sendCommand("volume 10");
-});
-
-screen.key(["-"], (ch, key) => {
-  sendCommand("volume -10");
-});
-
 screen.key(["escape", "q"], (ch, key) => {
-  //mplayer.kill();
   return process.exit(0);
 });
 
