@@ -58,7 +58,7 @@ const feedList = blessed.list({
   top: 0,
   left: 0,
   width: "100%",
-  height: "90%",
+  height: "87%",
   keys: true,
   vi: true,
   label: " Music For Programming ",
@@ -73,18 +73,41 @@ const feedList = blessed.list({
   },
 });
 
-const player = blessed.box({
-  top: "90%",
-  left: "0",
-  width: "100%",
-  height: "10%",
+const playerLeft = blessed.box({
+  top: "87%",
+  left: "0%",
+  width: "66%",
+  height: "12%",
   content: `> `,
   tags: true,
   label: " Player ",
   border: {
     type: "line",
   },
-  padding: { left: 1 },
+  padding: { top: 1, left: 1 },
+  style: {
+    fg: "white",
+    border: {
+      fg: "white",
+    },
+    label: {
+      fg: "green",
+    },
+  },
+});
+
+const playerRight = blessed.box({
+  top: "87%",
+  left: "67%",
+  width: "34%",
+  height: "12%",
+  content: `> `,
+  tags: true,
+  label: " Statistic ",
+  border: {
+    type: "line",
+  },
+  padding: { top: 1, left: 1 },
   style: {
     fg: "white",
     border: {
@@ -102,7 +125,13 @@ const helpBox = blessed.box({
   width: "75%",
   height: "75%",
   label: "Help",
-  content: "Help text: Press any key to close this message.",
+  content: `q              Detach mfp from the MPD server
+ENTER          Start playing at this file
+j              Move down in the list
+k              Move up in the list
+q              Quit
+SPACE          Pause/Play
+`,
   border: { type: "line" },
   style: {
     border: { fg: "white" },
@@ -112,7 +141,8 @@ const helpBox = blessed.box({
 });
 
 screen.append(feedList);
-screen.append(player);
+screen.append(playerLeft);
+screen.append(playerRight);
 
 async function loadAndDisplayFeed(url) {
   try {
@@ -140,10 +170,7 @@ screen.key(["space"], (ch, key) => {
 screen.key("enter", () => {
   const selectedItem = feedList.getItem(feedList.selected).getContent();
   const mp3 = music[selectedItem].mp3;
-
   play(mp3);
-  player.setContent(`> {bold}${mp3}{/bold}: {red-fg}${selectedItem}{/red-fg}`);
-  screen.render();
 });
 
 setInterval(() => {
@@ -152,7 +179,6 @@ setInterval(() => {
     let duration = null;
     let state = null;
     let bitrate = null;
-    let audio = null;
 
     if (err) throw err;
     const status = mpd.parseKeyValueMessage(msg);
@@ -160,19 +186,19 @@ setInterval(() => {
     duration = formatSeconds(status.duration);
     state = status.state;
     bitrate = status.bitrate + " kbps";
-    audio = status.audio;
 
     client.sendCommand(cmd("currentsong", []), (err, msg) => {
       if (err) throw err;
       const songInfo = mpd.parseKeyValueMessage(msg).Title;
+      const content = `> {bold}{red-fg}[${state}]{/red-fg} ${songInfo}{/bold}`;
+      const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/red-fg}{/bold}`;
 
-      player.setContent(
-        `> {bold}{green-fg}[${state}]{/green-fg} ${songInfo}{/bold}: {red-fg}${elapsed} ${duration} ${bitrate} ${audio}{/red-fg}`,
-      );
+      playerLeft.setContent(content);
+      playerRight.setContent(instruments);
       screen.render();
     });
   });
-}, 500);
+}, 800);
 
 screen.key("h", function () {
   if (helpBox.hidden) {
