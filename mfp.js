@@ -18,10 +18,7 @@ const formatSeconds = (totalSeconds) => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
 
-  const minutesStr = minutes.toString().padStart(2, "0");
-  const secondsStr = seconds.toString().padStart(2, "0");
-
-  return `${minutesStr}:${secondsStr}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
 const play = (streamUrl) => {
@@ -38,11 +35,11 @@ const play = (streamUrl) => {
 
 const pausePlay = () => {
   if (musicState) {
-    client.sendCommand(cmd("pause", [1]), (err, msg) => {
+    client.sendCommand(cmd("pause", [1]), (err, _msg) => {
       if (err) throw err;
     });
   } else {
-    client.sendCommand(cmd("play", []), (err, msg) => {
+    client.sendCommand(cmd("play", []), (err, _msg) => {
       if (err) throw err;
     });
   }
@@ -58,12 +55,11 @@ const feedList = blessed.list({
   top: 0,
   left: 0,
   width: "100%",
-  height: "70%",
+  height: "68%",
   keys: true,
-  vi: true,
   label: "| Music For Programming |",
   border: { type: "line" },
-  padding: { top: 1, left: 1 },
+  padding: { left: 1 },
   style: {
     item: { hover: { bg: "blue" } },
     selected: { bg: "blue", bold: true },
@@ -99,9 +95,8 @@ const description = blessed.box({
 const playerLeft = blessed.box({
   top: "85%",
   left: "0%",
-  width: "66%",
+  width: "60%",
   height: "12%",
-  content: `> `,
   tags: true,
   label: "| Player |",
   border: {
@@ -121,10 +116,10 @@ const playerLeft = blessed.box({
 
 const playerRight = blessed.box({
   top: "85%",
-  left: "66%",
-  width: "34%",
+  left: "60%",
+  width: "40%",
   height: "12%",
-  content: `> `,
+  align: "center",
   tags: true,
   label: "| Statistic |",
   border: {
@@ -147,7 +142,7 @@ const helpBox = blessed.box({
   left: "center",
   width: "75%",
   height: "75%",
-  label: "Help",
+  label: "| Help |",
   content: `q              Detach mfp from the MPD server
 ENTER          Start playing at this file
 h              Help
@@ -160,6 +155,9 @@ SPACE          Pause/Play
   style: {
     border: { fg: "white" },
     fg: "white",
+    label: {
+      fg: "green",
+    },
   },
   hidden: true,
 });
@@ -172,15 +170,14 @@ screen.append(description);
 async function loadAndDisplayFeed(url) {
   try {
     const feed = await parser.parseURL(url);
-    const items = feed.items.map((item) => item.title);
-    let count = 0;
-    feed.items.map((item) => {
+    const items = feed.items.map((item, index) => {
       music[item.title] = {
-        id: count++,
+        id: index,
         content: item.content,
         mp3: item.comments,
         pubDate: item.pubDate,
       };
+      return item.title;
     });
     feedList.setItems(items);
     screen.render();
@@ -195,6 +192,7 @@ loadAndDisplayFeed(feed);
 screen.key(["space"], (_ch, _key) => {
   pausePlay();
 });
+
 screen.key("enter", () => {
   const selectedItem = feedList.getItem(feedList.selected).getContent();
   const mp3 = music[selectedItem].mp3;
@@ -203,33 +201,34 @@ screen.key("enter", () => {
 });
 
 const updateUi = () => {
-  client.sendCommand(cmd("status", []), (err, msg) => {
-    let elapsed = null;
-    let duration = null;
-    let state = null;
-    let bitrate = null;
-
+  client.sendCommand(cmd("stats", []), (err, msg) => {
     if (err) throw err;
-    const status = mpd.parseKeyValueMessage(msg);
-    elapsed = formatSeconds(status.elapsed);
-    duration = formatSeconds(status.duration);
-    state = status.state;
-    bitrate = status.bitrate + " kbps";
+    const data = mpd.parseKeyValueMessage(msg);
+    const uptime = Math.round(data.uptime / 3600);
 
-    client.sendCommand(cmd("currentsong", []), (err, msg) => {
+    client.sendCommand(cmd("status", []), (err, msg) => {
       if (err) throw err;
-      const songInfo = mpd.parseKeyValueMessage(msg).Title;
-      const artist = mpd.parseKeyValueMessage(msg).Artist;
-      const content = `> {bold}{red-fg}[${state}]{/red-fg} ${songInfo} [${artist}]{/bold}`;
-      const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/red-fg}{/bold}`;
+      const status = mpd.parseKeyValueMessage(msg);
+      const elapsed = formatSeconds(status.elapsed);
+      const duration = formatSeconds(status.duration);
+      const state = status.state;
+      const bitrate = status.bitrate + " kbps";
 
-      const selectedItem = feedList.getItem(feedList.selected).getContent();
-      playerLeft.setContent(content);
-      playerRight.setContent(instruments);
-      description.setContent(
-        `{bold}${selectedItem}{/bold}` + "\n" + music[selectedItem].content,
-      );
-      screen.render();
+      client.sendCommand(cmd("currentsong", []), (err, msg) => {
+        if (err) throw err;
+        const songInfo = mpd.parseKeyValueMessage(msg).Title;
+        const artist = mpd.parseKeyValueMessage(msg).Artist;
+        const content = `{bold}{red-fg}[${state}]{/red-fg} ${songInfo} [${artist}]{/bold}`;
+        const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}] [${uptime}h Uptime]{/red-fg}{/bold}`;
+
+        const selectedItem = feedList.getItem(feedList.selected).getContent();
+        playerLeft.setContent(content);
+        playerRight.setContent(instruments);
+        description.setContent(
+          `{bold}${selectedItem}{/bold}` + "\n" + music[selectedItem].content,
+        );
+        screen.render();
+      });
     });
   });
 };
