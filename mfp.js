@@ -4,6 +4,7 @@ const blessed = require("blessed");
 const RSSParser = require("rss-parser");
 const parser = new RSSParser();
 const music = {};
+let foo;
 let musicState = false;
 
 const mpd = require("mpd");
@@ -58,12 +59,12 @@ const feedList = blessed.list({
   top: 0,
   left: 0,
   width: "100%",
-  height: "87%",
+  height: "70%",
   keys: true,
   vi: true,
-  label: " Music For Programming ",
+  label: "| Music For Programming |",
   border: { type: "line" },
-  padding: { left: 1 },
+  padding: { top: 1, left: 1 },
   style: {
     item: { hover: { bg: "blue" } },
     selected: { bg: "blue", bold: true },
@@ -73,14 +74,37 @@ const feedList = blessed.list({
   },
 });
 
+const description = blessed.box({
+  top: "70%",
+  left: "0%",
+  width: "100%",
+  height: "15%",
+  content: ``,
+  tags: true,
+  label: "| Description |",
+  border: {
+    type: "line",
+  },
+  padding: { top: 1, left: 1 },
+  style: {
+    fg: "white",
+    border: {
+      fg: "white",
+    },
+    label: {
+      fg: "green",
+    },
+  },
+});
+
 const playerLeft = blessed.box({
-  top: "87%",
+  top: "85%",
   left: "0%",
   width: "66%",
   height: "12%",
   content: `> `,
   tags: true,
-  label: " Player ",
+  label: "| Player |",
   border: {
     type: "line",
   },
@@ -97,13 +121,13 @@ const playerLeft = blessed.box({
 });
 
 const playerRight = blessed.box({
-  top: "87%",
-  left: "67%",
-  width: "34%",
+  top: "85%",
+  left: "66%",
+  width: "35%",
   height: "12%",
   content: `> `,
   tags: true,
-  label: " Statistic ",
+  label: "| Statistic |",
   border: {
     type: "line",
   },
@@ -143,14 +167,16 @@ SPACE          Pause/Play
 screen.append(feedList);
 screen.append(playerLeft);
 screen.append(playerRight);
+screen.append(description);
 
 async function loadAndDisplayFeed(url) {
   try {
     const feed = await parser.parseURL(url);
+    foo = feed;
     const items = feed.items.map((item) => item.title);
     feed.items.map((item) => {
       music[item.title] = {
-        description: item.description,
+        content: item.content,
         mp3: item.comments,
         pubDate: item.pubDate,
       };
@@ -170,6 +196,7 @@ screen.key(["space"], (ch, key) => {
 screen.key("enter", () => {
   const selectedItem = feedList.getItem(feedList.selected).getContent();
   const mp3 = music[selectedItem].mp3;
+
   play(mp3);
 });
 
@@ -193,8 +220,12 @@ setInterval(() => {
       const content = `> {bold}{red-fg}[${state}]{/red-fg} ${songInfo}{/bold}`;
       const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/red-fg}{/bold}`;
 
+      const selectedItem = feedList.getItem(feedList.selected).getContent();
       playerLeft.setContent(content);
       playerRight.setContent(instruments);
+      description.setContent(
+        `{bold}${selectedItem}{/bold}` + "\n" + music[selectedItem].content,
+      );
       screen.render();
     });
   });
@@ -236,9 +267,11 @@ screen.key(["g"], (ch, key) => {
   }
 });
 
-screen.key(["G"], (ch, key) => {
-  feedList.select(feedList.items.length - 1);
-  screen.render();
+screen.program.on("keypress", function (ch, key) {
+  if (key.name === "g" && key.shift) {
+    feedList.select(feedList.items.length - 1);
+    screen.render();
+  }
 });
 
 screen.key(["j"], (ch, key) => {

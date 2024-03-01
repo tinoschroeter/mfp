@@ -4,15 +4,15 @@
 
 Inspired by [musicforprogramming.net](https://musicforprogramming.net/latest/)
 
-```js
-A series of mixes intended for listening while ${task}to focus the brain and inspire the mind.
-```
+> A series of mixes intended for listening while ${task}to focus the brain and inspire the mind.
 
 ![screenshot](./mfp.png)
 
 ## installation
 
 ### mpd
+
+[Music_Player_Daemon Wikipedia](https://en.wikipedia.org/wiki/Music_Player_Daemon)
 
 ```bash
 # install Music Player Daemon
