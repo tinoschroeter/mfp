@@ -4,14 +4,13 @@ const blessed = require("blessed");
 const RSSParser = require("rss-parser");
 const parser = new RSSParser();
 const music = {};
-let foo;
 let musicState = false;
 
 const mpd = require("mpd");
 const cmd = mpd.cmd;
 const client = mpd.connect({
-  port: 6600,
-  host: "localhost",
+  port: process.env.MFP_PORT || 6600,
+  host: process.env.MFP_HOST || "localhost",
 });
 
 const formatSeconds = (totalSeconds) => {
@@ -85,7 +84,7 @@ const description = blessed.box({
   border: {
     type: "line",
   },
-  padding: { top: 1, left: 1 },
+  padding: { left: 1 },
   style: {
     fg: "white",
     border: {
@@ -123,7 +122,7 @@ const playerLeft = blessed.box({
 const playerRight = blessed.box({
   top: "85%",
   left: "66%",
-  width: "35%",
+  width: "34%",
   height: "12%",
   content: `> `,
   tags: true,
@@ -151,6 +150,7 @@ const helpBox = blessed.box({
   label: "Help",
   content: `q              Detach mfp from the MPD server
 ENTER          Start playing at this file
+h              Help
 j              Move down in the list
 k              Move up in the list
 q              Quit
@@ -172,10 +172,11 @@ screen.append(description);
 async function loadAndDisplayFeed(url) {
   try {
     const feed = await parser.parseURL(url);
-    foo = feed;
     const items = feed.items.map((item) => item.title);
+    let count = 0;
     feed.items.map((item) => {
       music[item.title] = {
+        id: count++,
         content: item.content,
         mp3: item.comments,
         pubDate: item.pubDate,
@@ -188,9 +189,10 @@ async function loadAndDisplayFeed(url) {
   }
 }
 
-loadAndDisplayFeed("https://musicforprogramming.net/rss.xml");
+const feed = process.env.MFP_FEED || "https://musicforprogramming.net/rss.xml";
+loadAndDisplayFeed(feed);
 
-screen.key(["space"], (ch, key) => {
+screen.key(["space"], (_ch, _key) => {
   pausePlay();
 });
 screen.key("enter", () => {
@@ -200,7 +202,7 @@ screen.key("enter", () => {
   play(mp3);
 });
 
-setInterval(() => {
+const updateUi = () => {
   client.sendCommand(cmd("status", []), (err, msg) => {
     let elapsed = null;
     let duration = null;
@@ -217,7 +219,8 @@ setInterval(() => {
     client.sendCommand(cmd("currentsong", []), (err, msg) => {
       if (err) throw err;
       const songInfo = mpd.parseKeyValueMessage(msg).Title;
-      const content = `> {bold}{red-fg}[${state}]{/red-fg} ${songInfo}{/bold}`;
+      const artist = mpd.parseKeyValueMessage(msg).Artist;
+      const content = `> {bold}{red-fg}[${state}]{/red-fg} ${songInfo} [${artist}]{/bold}`;
       const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/red-fg}{/bold}`;
 
       const selectedItem = feedList.getItem(feedList.selected).getContent();
@@ -229,7 +232,9 @@ setInterval(() => {
       screen.render();
     });
   });
-}, 800);
+};
+
+setInterval(updateUi, 800);
 
 screen.key("h", function () {
   if (helpBox.hidden) {
@@ -244,13 +249,13 @@ screen.key("h", function () {
   }
 });
 
-screen.key(["escape", "q"], (ch, key) => {
+screen.key(["escape", "q"], (_ch, _key) => {
   return process.exit(0);
 });
 
 let firstGPressed = false;
 
-screen.key(["g"], (ch, key) => {
+screen.key(["g"], (_ch, _key) => {
   if (!firstGPressed) {
     firstGPressed = true;
     setTimeout(() => {
@@ -267,19 +272,19 @@ screen.key(["g"], (ch, key) => {
   }
 });
 
-screen.program.on("keypress", function (ch, key) {
+screen.program.on("keypress", function (_ch, key) {
   if (key.name === "g" && key.shift) {
     feedList.select(feedList.items.length - 1);
     screen.render();
   }
 });
 
-screen.key(["j"], (ch, key) => {
+screen.key(["j"], (_ch, _key) => {
   feedList.down();
   screen.render();
 });
 
-screen.key(["k"], (ch, key) => {
+screen.key(["k"], (_ch, _key) => {
   feedList.up();
   screen.render();
 });

@@ -1,10 +1,8 @@
 # Music For Programming
 
-> A small music app that runs in the CLI and can be easily integrated into vim.
+> A small music app that runs in the CLI and can be easily integrated into vim (MPD Client).
 
 Inspired by [musicforprogramming.net](https://musicforprogramming.net/latest/)
-
-> A series of mixes intended for listening while ${task}to focus the brain and inspire the mind.
 
 ![screenshot](./mfp.png)
 
@@ -41,6 +39,14 @@ systemctl enable mpd
 ```
 
 ### mfp.js
+
+#### ENV
+
+```bash
+MFP_FEED default: "https://musicforprogramming.net/rss.xml"
+MFP_PORT default: 6600,
+MFP_HOST default: "localhost",
+```
 
 ```bash
 git clone git@github.com:tinoschroeter/mfp.git
