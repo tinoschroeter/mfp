@@ -55,7 +55,7 @@ const feedList = blessed.list({
   top: 0,
   left: 0,
   width: "100%",
-  height: "68%",
+  height: "71%",
   keys: true,
   label: "| Music For Programming |",
   border: { type: "line" },
@@ -70,11 +70,11 @@ const feedList = blessed.list({
 });
 
 const description = blessed.box({
-  top: "70%",
+  parent: feedList,
+  top: "71%",
   left: "0%",
   width: "100%",
-  height: "15%",
-  content: ``,
+  height: "18%",
   tags: true,
   label: "| Description |",
   border: {
@@ -93,9 +93,10 @@ const description = blessed.box({
 });
 
 const playerLeft = blessed.box({
-  top: "85%",
-  left: "0%",
-  width: "60%",
+  parent: feedList,
+  top: "89%",
+  left: "0",
+  width: "55%",
   height: "12%",
   tags: true,
   label: "| Player |",
@@ -115,9 +116,10 @@ const playerLeft = blessed.box({
 });
 
 const playerRight = blessed.box({
-  top: "85%",
-  left: "60%",
-  width: "40%",
+  parent: feedList,
+  top: "89%",
+  left: "55%",
+  width: "45%",
   height: "12%",
   align: "center",
   tags: true,
@@ -125,7 +127,7 @@ const playerRight = blessed.box({
   border: {
     type: "line",
   },
-  padding: { top: 1, left: 1 },
+  padding: { top: 1 },
   style: {
     fg: "white",
     border: {
@@ -140,10 +142,10 @@ const playerRight = blessed.box({
 const helpBox = blessed.box({
   top: "center",
   left: "center",
-  width: "75%",
-  height: "75%",
+  width: "50%",
+  height: "50%",
   label: "| Help |",
-  content: `q              Detach mfp from the MPD server
+  content: `q | Esc        Detach mfp from the MPD server
 ENTER          Start playing at this file
 h              Help
 j              Move down in the list
@@ -211,17 +213,20 @@ const updateUi = () => {
       const status = mpd.parseKeyValueMessage(msg);
       const elapsed = formatSeconds(status.elapsed);
       const duration = formatSeconds(status.duration);
-      const state = status.state;
+      const state =
+        status.state === "play"
+          ? "{green-fg}[play]{/green-fg}"
+          : "{red-fg}[pause]{/red-fg}";
       const bitrate = status.bitrate + " kbps";
 
       client.sendCommand(cmd("currentsong", []), (err, msg) => {
         if (err) throw err;
         const songInfo = mpd.parseKeyValueMessage(msg).Title;
         const artist = mpd.parseKeyValueMessage(msg).Artist;
-        const content = `{bold}{red-fg}[${state}]{/red-fg} ${songInfo} [${artist}]{/bold}`;
+        const selectedItem = feedList.getItem(feedList.selected).getContent();
+        const content = `{bold}${state} ${songInfo} [${artist}]{/bold}`;
         const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}] [${uptime}h Uptime]{/red-fg}{/bold}`;
 
-        const selectedItem = feedList.getItem(feedList.selected).getContent();
         playerLeft.setContent(content);
         playerRight.setContent(instruments);
         description.setContent(
