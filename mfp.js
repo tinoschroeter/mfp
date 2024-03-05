@@ -218,17 +218,6 @@ async function loadAndDisplayFeed(url) {
 const feed = process.env.MFP_FEED || "https://musicforprogramming.net/rss.xml";
 loadAndDisplayFeed(feed);
 
-screen.key(["space"], (_ch, _key) => {
-  pausePlay();
-});
-
-screen.key("enter", () => {
-  const selectedItem = feedList.getItem(feedList.selected).getContent();
-  const mp3 = music[selectedItem].mp3;
-
-  play(mp3);
-});
-
 const updateUi = () => {
   client.sendCommand(cmd("status", []), (err, msg) => {
     if (err) throw err;
@@ -262,6 +251,17 @@ const updateUi = () => {
 };
 
 setInterval(updateUi, 800);
+
+screen.key(["space"], (_ch, _key) => {
+  pausePlay();
+});
+
+screen.key("enter", () => {
+  const selectedItem = feedList.getItem(feedList.selected).getContent();
+  const mp3 = music[selectedItem].mp3;
+
+  play(mp3);
+});
 
 screen.key("?", function () {
   if (helpBox.hidden) {
