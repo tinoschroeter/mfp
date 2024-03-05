@@ -46,25 +46,49 @@ const pausePlay = () => {
   musicState = !musicState;
 };
 
+const jump = (seconds) => {
+  client.sendCommand(cmd("status", []), (err, msg) => {
+    if (err) throw err;
+    const status = mpd.parseKeyValueMessage(msg);
+    if (status.state === "play") {
+      const currentTime = parseInt(status.elapsed.split(".")[0], 10);
+      const newPosition = currentTime + seconds;
+      client.sendCommand(cmd("seekcur", [`${newPosition}`]), (err) => {
+        if (err) throw err;
+      });
+    }
+  });
+};
+
 const screen = blessed.screen({
   smartCSR: true,
   title: "Music For Programming",
 });
 
 const feedList = blessed.list({
+  parent: screen,
   top: 0,
   left: 0,
   width: "100%",
   height: "71%",
   keys: true,
-  label: "| Music For Programming |",
+  label: " Press ? for help ",
   border: { type: "line" },
   padding: { left: 1 },
+  noCellBorders: true,
+  invertSelected: false,
+  scrollbar: {
+    ch: " ",
+    style: { bg: "blue" },
+    track: {
+      style: { bg: "grey" },
+    },
+  },
   style: {
     item: { hover: { bg: "blue" } },
-    selected: { bg: "blue", bold: true },
+    selected: { fg: "black", bg: "blue", bold: true },
     label: {
-      fg: "green",
+      fg: "lightgrey",
     },
   },
 });
@@ -76,30 +100,7 @@ const description = blessed.box({
   width: "100%",
   height: "18%",
   tags: true,
-  label: "| Description |",
-  border: {
-    type: "line",
-  },
-  padding: { left: 1 },
-  style: {
-    fg: "white",
-    border: {
-      fg: "white",
-    },
-    label: {
-      fg: "green",
-    },
-  },
-});
-
-const playerLeft = blessed.box({
-  parent: feedList,
-  top: "89%",
-  left: "0",
-  width: "55%",
-  height: "12%",
-  tags: true,
-  label: "| Player |",
+  label: " Description ",
   border: {
     type: "line",
   },
@@ -110,7 +111,30 @@ const playerLeft = blessed.box({
       fg: "white",
     },
     label: {
-      fg: "green",
+      fg: "lightgrey",
+    },
+  },
+});
+
+const playerLeft = blessed.box({
+  parent: feedList,
+  top: "89%",
+  left: "0",
+  width: "67%",
+  height: "12%",
+  tags: true,
+  label: " Player ",
+  border: {
+    type: "line",
+  },
+  padding: { top: 1, left: 1 },
+  style: {
+    fg: "white",
+    border: {
+      fg: "white",
+    },
+    label: {
+      fg: "lightgrey",
     },
   },
 });
@@ -118,12 +142,12 @@ const playerLeft = blessed.box({
 const playerRight = blessed.box({
   parent: feedList,
   top: "89%",
-  left: "55%",
-  width: "45%",
+  left: "67%",
+  width: "35%-2",
   height: "12%",
   align: "center",
   tags: true,
-  label: "| Statistic |",
+  label: " Statistic ",
   border: {
     type: "line",
   },
@@ -134,31 +158,34 @@ const playerRight = blessed.box({
       fg: "white",
     },
     label: {
-      fg: "green",
+      fg: "lightgrey",
     },
   },
 });
 
 const helpBox = blessed.box({
+  parent: screen,
   top: "center",
   left: "center",
   width: "50%",
-  height: "50%",
-  label: "| Help |",
-  content: `q | Esc        Detach mfp from the MPD server
+  height: "35%",
+  label: " Help ",
+  content: `q|Esc          Detach mfp from the MPD server
 ENTER          Start playing at this file
-h              Help
+SPACE          Pause/Play
 j              Move down in the list
 k              Move up in the list
+h              Jump back 10 seconds
+l              Jump forward 10 seconds
+?              Help
 q              Quit
-SPACE          Pause/Play
 `,
   border: { type: "line" },
   style: {
     border: { fg: "white" },
     fg: "white",
     label: {
-      fg: "green",
+      fg: "lightgrey",
     },
   },
   hidden: true,
@@ -203,44 +230,40 @@ screen.key("enter", () => {
 });
 
 const updateUi = () => {
-  client.sendCommand(cmd("stats", []), (err, msg) => {
+  client.sendCommand(cmd("status", []), (err, msg) => {
     if (err) throw err;
-    const data = mpd.parseKeyValueMessage(msg);
-    const uptime = Math.round(data.uptime / 3600);
+    const status = mpd.parseKeyValueMessage(msg);
+    const elapsed = formatSeconds(status.elapsed);
+    const duration = formatSeconds(status.duration);
+    const state =
+      status.state === "play"
+        ? "{green-fg}[play]{/green-fg}"
+        : "{red-fg}[pause]{/red-fg}";
+    const bitrate = status.bitrate + " kbps";
 
-    client.sendCommand(cmd("status", []), (err, msg) => {
+    client.sendCommand(cmd("currentsong", []), (err, msg) => {
       if (err) throw err;
-      const status = mpd.parseKeyValueMessage(msg);
-      const elapsed = formatSeconds(status.elapsed);
-      const duration = formatSeconds(status.duration);
-      const state =
-        status.state === "play"
-          ? "{green-fg}[play]{/green-fg}"
-          : "{red-fg}[pause]{/red-fg}";
-      const bitrate = status.bitrate + " kbps";
+      const songInfo = mpd.parseKeyValueMessage(msg).Title;
+      const artist = mpd.parseKeyValueMessage(msg).Artist;
+      const selectedItem = feedList.getItem(feedList.selected).getContent();
+      const content = `{bold}${state} ${songInfo} [${artist}]{/bold}`;
+      const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/red-fg}{/bold}`;
 
-      client.sendCommand(cmd("currentsong", []), (err, msg) => {
-        if (err) throw err;
-        const songInfo = mpd.parseKeyValueMessage(msg).Title;
-        const artist = mpd.parseKeyValueMessage(msg).Artist;
-        const selectedItem = feedList.getItem(feedList.selected).getContent();
-        const content = `{bold}${state} ${songInfo} [${artist}]{/bold}`;
-        const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}] [${uptime}h Uptime]{/red-fg}{/bold}`;
-
-        playerLeft.setContent(content);
-        playerRight.setContent(instruments);
-        description.setContent(
-          `{bold}${selectedItem}{/bold}` + "\n" + music[selectedItem].content,
-        );
-        screen.render();
-      });
+      playerLeft.setContent(content);
+      playerRight.setContent(instruments);
+      description.setContent(
+        `{bold}{green-fg}${selectedItem}{/green-fg}{/bold}` +
+          "\n" +
+          music[selectedItem].content,
+      );
+      screen.render();
     });
   });
 };
 
 setInterval(updateUi, 800);
 
-screen.key("h", function () {
+screen.key("?", function () {
   if (helpBox.hidden) {
     screen.append(helpBox);
     helpBox.show();
@@ -291,6 +314,14 @@ screen.key(["j"], (_ch, _key) => {
 screen.key(["k"], (_ch, _key) => {
   feedList.up();
   screen.render();
+});
+
+screen.key(["h"], (_ch, _key) => {
+  jump(-10);
+});
+
+screen.key(["l"], (_ch, _key) => {
+  jump(10);
 });
 
 screen.render();

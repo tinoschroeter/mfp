@@ -52,6 +52,7 @@ MFP_HOST default: "localhost",
 git clone git@github.com:tinoschroeter/mfp.git
 cd mfp
 
+npm install
 npm install -g .
 ```
 
