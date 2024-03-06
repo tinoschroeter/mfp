@@ -121,13 +121,13 @@ const playerLeft = blessed.box({
   top: "89%",
   left: "0",
   width: "67%",
-  height: "12%",
+  height: "11%",
   tags: true,
   label: " Player ",
   border: {
     type: "line",
   },
-  padding: { top: 1, left: 1 },
+  padding: { left: 1 },
   style: {
     fg: "white",
     border: {
@@ -144,14 +144,13 @@ const playerRight = blessed.box({
   top: "89%",
   left: "67%",
   width: "35%-2",
-  height: "12%",
+  height: "11%",
   align: "center",
   tags: true,
   label: " Statistic ",
   border: {
     type: "line",
   },
-  padding: { top: 1 },
   style: {
     fg: "white",
     border: {
