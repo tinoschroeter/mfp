@@ -249,7 +249,7 @@ const updateUi = () => {
   });
 };
 
-setInterval(updateUi, 800);
+setInterval(updateUi, 1000);
 
 screen.key(["space"], (_ch, _key) => {
   pausePlay();
