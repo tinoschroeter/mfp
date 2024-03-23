@@ -60,6 +60,16 @@ const jump = (seconds) => {
   });
 };
 
+const searchInList = (query) => {
+  const items = feedList.items.map((item) => item.getContent());
+  const index = items.findIndex((item) =>
+    item.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  feedList.select(index !== -1 ? index : 0);
+  screen.render();
+};
+
 const screen = blessed.screen({
   smartCSR: true,
   title: "Music For Programming",
@@ -174,6 +184,7 @@ const helpBox = blessed.box({
   content: `q|Esc          Detach mfp from the MPD server
 ENTER          Start playing at this file
 SPACE          Pause/Play
+/              Search
 j              Move down in the list
 k              Move up in the list
 h              Jump back 10 seconds
@@ -192,12 +203,34 @@ q              Quit
   hidden: true,
 });
 
+const prompt = blessed.prompt({
+  top: "center",
+  left: "center",
+  width: "50%",
+  height: "20%",
+  border: {
+    type: "line",
+  },
+  style: {
+    border: { fg: "white" },
+    fg: "white",
+    label: {
+      fg: "lightgrey",
+    },
+  },
+  label: " Search ",
+  tags: true,
+  keys: true,
+  hidden: true,
+});
+
 screen.append(feedList);
 screen.append(playerLeft);
 screen.append(playerRight);
 screen.append(description);
+screen.append(prompt);
 
-async function loadAndDisplayFeed(url) {
+const loadAndDisplayFeed = async (url) => {
   try {
     const feed = await parser.parseURL(url);
     const items = feed.items.map((item, index) => {
@@ -214,7 +247,7 @@ async function loadAndDisplayFeed(url) {
   } catch (error) {
     console.error("Error loading the RSS feed.", error);
   }
-}
+};
 
 const feed = process.env.MFP_FEED || "https://musicforprogramming.net/rss.xml";
 loadAndDisplayFeed(feed);
@@ -305,6 +338,12 @@ screen.program.on("keypress", function (_ch, key) {
     feedList.select(feedList.items.length - 1);
     screen.render();
   }
+});
+
+screen.key("/", () => {
+  prompt.input("", (_err, value) => {
+    searchInList(value || "...");
+  });
 });
 
 screen.key(["j"], (_ch, _key) => {
