@@ -266,9 +266,9 @@ const updateUi = () => {
 
     client.sendCommand(cmd("currentsong", []), (err, msg) => {
       if (err) throw err;
-      const songInfo = mpd.parseKeyValueMessage(msg).Title;
-      const artist = mpd.parseKeyValueMessage(msg).Artist;
-      const selectedItem = feedList.getItem(feedList.selected).getContent();
+      const songInfo = mpd.parseKeyValueMessage(msg)?.Title;
+      const artist = mpd.parseKeyValueMessage(msg)?.Artist;
+      const selectedItem = feedList.getItem(feedList.selected)?.getContent();
       const content = `{bold}${state} ${songInfo} [${artist}]{/bold}`;
       const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/red-fg}{/bold}`;
 
@@ -277,7 +277,7 @@ const updateUi = () => {
       description.setContent(
         `{bold}{green-fg}${selectedItem}{/green-fg}{/bold}` +
           "\n" +
-          music[selectedItem].content,
+          music[selectedItem]?.content,
       );
       screen.render();
     });
