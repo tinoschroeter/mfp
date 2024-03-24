@@ -179,7 +179,7 @@ const helpBox = blessed.box({
   top: "center",
   left: "center",
   width: "50%",
-  height: "35%",
+  height: "37%",
   label: " Help ",
   content: `q|Esc          Detach mfp from the MPD server
 ENTER          Start playing at this file
@@ -187,6 +187,8 @@ SPACE          Pause/Play
 /              Search
 j              Move down in the list
 k              Move up in the list
+gg             Jump to the first item in the list
+G              Jump to the last item in the list
 h              Jump back 10 seconds
 l              Jump forward 10 seconds
 ?              Help
