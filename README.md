@@ -54,6 +54,8 @@ cd mfp
 
 npm install
 npm install -g .
+
+mfp # To run the Application or use float_term for vim Integration
 ```
 
 ### vim
