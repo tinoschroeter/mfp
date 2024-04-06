@@ -4,7 +4,9 @@
 
 Inspired by [musicforprogramming.net](https://musicforprogramming.net/latest/)
 
-![screenshot](./mfp.png)
+![screenshot](./mfp.gif)
+
+[Gif was created with VHS](https://github.com/charmbracelet/vhs#vhs)
 
 ## installation
 
