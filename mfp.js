@@ -263,7 +263,7 @@ const updateUi = () => {
     const state =
       status.state === "play"
         ? "{green-fg}[play]{/green-fg}"
-        : "{red-fg}[pause]{/red-fg}";
+        : "{blue-fg}[pause]{/blue-fg}";
     const bitrate = status.bitrate + " kbps";
 
     client.sendCommand(cmd("currentsong", []), (err, msg) => {
@@ -272,7 +272,7 @@ const updateUi = () => {
       const artist = mpd.parseKeyValueMessage(msg)?.Artist;
       const selectedItem = feedList.getItem(feedList.selected)?.getContent();
       const content = `{bold}${state} ${songInfo} [${artist}]{/bold}`;
-      const instruments = `{bold}{red-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/red-fg}{/bold}`;
+      const instruments = `{bold}{blue-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/blue-fg}{/bold}`;
 
       playerLeft.setContent(content);
       playerRight.setContent(instruments);

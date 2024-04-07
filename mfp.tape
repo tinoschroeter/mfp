@@ -3,10 +3,10 @@ Output mfp.gif
 
 Set FontSize 23
 Set Margin 5
-Set MarginFill "#000000"
+Set MarginFill "#8b9bf7"
 Set BorderRadius 10
-Set Width 2200
-Set Height 1000
+Set Width 2300
+Set Height 1200
 Set Theme "TokyoNightStorm"
 
 Type@300ms "mfp"
