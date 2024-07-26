@@ -21,13 +21,25 @@ const formatSeconds = (totalSeconds) => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
+const errorHandling = (message) => {
+  screen.append(errorBox);
+  errorBox.show();
+  errorBox.setContent(message);
+  screen.render();
+
+  setTimeout(() => {
+    errorBox.hide();
+    screen.render();
+  }, 2_000);
+};
+
 const play = (streamUrl) => {
   client.sendCommand(cmd("clear", []), (err) => {
-    if (err) throw err;
+    if (err) return errorHandling(err);
     client.sendCommand(cmd("add", [streamUrl]), (err) => {
-      if (err) throw err;
+      if (err) return errorHandling(err);
       client.sendCommand(cmd("play", []), (err) => {
-        if (err) throw err;
+        if (err) return errorHandling(err);
       });
     });
   });
@@ -36,11 +48,11 @@ const play = (streamUrl) => {
 const pausePlay = () => {
   if (musicState) {
     client.sendCommand(cmd("pause", [1]), (err, _msg) => {
-      if (err) throw err;
+      if (err) return errorHandling(err);
     });
   } else {
     client.sendCommand(cmd("play", []), (err, _msg) => {
-      if (err) throw err;
+      if (err) return errorHandling(err);
     });
   }
   musicState = !musicState;
@@ -48,13 +60,13 @@ const pausePlay = () => {
 
 const jump = (seconds) => {
   client.sendCommand(cmd("status", []), (err, msg) => {
-    if (err) throw err;
+    if (err) return errorHandling(err);
     const status = mpd.parseKeyValueMessage(msg);
     if (status.state === "play") {
       const currentTime = parseInt(status.elapsed.split(".")[0], 10);
       const newPosition = currentTime + seconds;
       client.sendCommand(cmd("seekcur", [`${newPosition}`]), (err) => {
-        if (err) throw err;
+        if (err) return errorHandling(err);
       });
     }
   });
@@ -205,6 +217,25 @@ q              Quit
   hidden: true,
 });
 
+const errorBox = blessed.box({
+  parent: screen,
+  top: "center",
+  left: "center",
+  width: "70%",
+  height: "37%",
+  label: " Error ",
+  content: "",
+  border: { type: "line" },
+  style: {
+    border: { fg: "red" },
+    fg: "white",
+    label: {
+      fg: "lightgrey",
+    },
+  },
+  hidden: true,
+});
+
 const prompt = blessed.prompt({
   top: "center",
   left: "center",
@@ -256,7 +287,7 @@ loadAndDisplayFeed(feed);
 
 const updateUi = () => {
   client.sendCommand(cmd("status", []), (err, msg) => {
-    if (err) throw err;
+    if (err) return errorHandling(err);
     const status = mpd.parseKeyValueMessage(msg);
     const elapsed = formatSeconds(status.elapsed);
     const duration = formatSeconds(status.duration);
@@ -267,7 +298,7 @@ const updateUi = () => {
     const bitrate = status.bitrate + " kbps";
 
     client.sendCommand(cmd("currentsong", []), (err, msg) => {
-      if (err) throw err;
+      if (err) return errorHandling(err);
       const songInfo = mpd.parseKeyValueMessage(msg)?.Title;
       const artist = mpd.parseKeyValueMessage(msg)?.Artist;
       const selectedItem = feedList.getItem(feedList.selected)?.getContent();
