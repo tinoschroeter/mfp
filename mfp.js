@@ -278,7 +278,7 @@ const loadAndDisplayFeed = async (url) => {
     feedList.setItems(items);
     screen.render();
   } catch (error) {
-    console.error("Error loading the RSS feed.", error);
+    errorHandling(error);
   }
 };
 
@@ -317,7 +317,7 @@ const updateUi = () => {
   });
 };
 
-setInterval(updateUi, 1000);
+setInterval(updateUi, 900);
 
 screen.key(["space"], (_ch, _key) => {
   pausePlay();
