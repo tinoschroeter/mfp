@@ -8,10 +8,21 @@ Set BorderRadius 10
 Set Width 2300
 Set Height 1200
 Set Theme "TokyoNightStorm"
+Set Shell zsh
 
-Type@300ms "mfp"
-Sleep 1s
+Hide
+Type "source /home/tinoschroeter/.zshrc "
 Enter
+Sleep 2s
+Type clear
+Enter
+Show
+Type@300ms "vim mfp.js"
+Enter
+Sleep 4s
+Space
+Sleep 1s
+Type "m"
 Sleep 2s
 Type@220ms "jjjjjjjjjjjjjjjjjkkk"
 Sleep 1s
@@ -34,3 +45,4 @@ Enter
 Sleep 5s
 Space
 Type "q"
+Type "ZZ"
