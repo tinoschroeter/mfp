@@ -13,10 +13,13 @@ const client = mpd.connect({
 
 const data = {
   music: {},
+  playList: {},
+  playListOpen: true,
   musicState: true,
   filterOpen: false,
   feed: "https://musicforprogramming.net/rss.xml",
   filter: process.env.MFP_FEED || [
+    ["Playlist", "playlist"],
     ["Music for programming", "https://musicforprogramming.net/rss.xml"],
     ["YouTube Songs", "https://musicbox.tino.sh/best_songs/music.rss"],
   ],
@@ -28,6 +31,15 @@ const formatSeconds = (totalSeconds) => {
   const seconds = totalSeconds % 60 || 0;
 
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+};
+
+const fs = require("fs");
+const logger = (data) => {
+  fs.writeFile("debugLog.json", data.toString(), (err) => {
+    if (err) {
+      console.error("Error writing the debugLog.json: ", err);
+    }
+  });
 };
 
 const errorHandling = (message) => {
@@ -51,20 +63,12 @@ const infoHandler = (message) => {
   setTimeout(() => {
     infoBox.hide();
     screen.render();
-  }, 14_000);
+  }, 4_000);
 };
 
-const play = (streamUrl) => {
-  client.sendCommand(cmd("clear", []), (err) => {
+const play = (id) => {
+  client.sendCommand(cmd("play", [id]), (err, _msg) => {
     if (err) return errorHandling(err);
-    streamUrl.forEach((mp3) => {
-      client.sendCommand(cmd("add", [mp3]), (err) => {
-        if (err) return errorHandling(err);
-      });
-    });
-    client.sendCommand(cmd("play", []), (err) => {
-      if (err) return errorHandling(err);
-    });
   });
 };
 
@@ -119,21 +123,21 @@ const feedList = blessed.list({
   width: "100%",
   height: "71%",
   keys: true,
-  label: " Press ? for help ",
+  label: " Press ? for help / Playlist ",
   border: { type: "line" },
   padding: { left: 1 },
   noCellBorders: true,
   invertSelected: false,
   scrollbar: {
     ch: " ",
-    style: { bg: "blue" },
+    style: { bg: "magenta" },
     track: {
       style: { bg: "grey" },
     },
   },
   style: {
-    item: { hover: { bg: "blue" } },
-    selected: { fg: "black", bg: "blue", bold: true },
+    item: { hover: { bg: "magenta" } },
+    selected: { fg: "black", bg: "magenta", bold: true },
     label: {
       fg: "lightgrey",
     },
@@ -154,14 +158,14 @@ const filter = blessed.list({
   invertSelected: false,
   scrollbar: {
     ch: " ",
-    style: { bg: "blue" },
+    style: { bg: "magenta" },
     track: {
       style: { bg: "grey" },
     },
   },
   style: {
-    item: { hover: { bg: "blue" } },
-    selected: { fg: "black", bg: "blue", bold: true },
+    item: { hover: { bg: "magenta" } },
+    selected: { fg: "black", bg: "magenta", bold: true },
     label: {
       fg: "lightgrey",
     },
@@ -178,7 +182,7 @@ const infoBox = blessed.box({
   label: " Info ",
   border: { type: "line" },
   style: {
-    border: { fg: "blue" },
+    border: { fg: "magenta" },
     fg: "white",
     label: {
       fg: "lightgrey",
@@ -264,7 +268,7 @@ const helpBox = blessed.box({
   top: "center",
   left: "center",
   width: "50%",
-  height: "50%",
+  height: "60%",
   label: " Help ",
   content: ` q|Esc          Detach mfp from the MPD server
  ENTER          Start playing at this file
@@ -277,7 +281,11 @@ const helpBox = blessed.box({
  f              Open feed list
  h              Jump back 10 seconds
  l              Jump forward 10 seconds
- n              Plays next song in the playlist.
+ a              Add song to the playList 
+ d              Delete song from the playList
+ c              Remove the hole playList
+ n              Plays next song in the playList
+ p              Plays previous song in the playList
  ?              Help
  q              Quit
 `,
@@ -353,14 +361,13 @@ const loadAndDisplayFeed = async (url) => {
       };
       return item.title;
     });
+    //logger(JSON.stringify(data));
     feedList.setItems(items);
     screen.render();
   } catch (error) {
     errorHandling(error);
   }
 };
-
-loadAndDisplayFeed(data.feed);
 
 const loadAndDisplayFilter = () => {
   const list = data.filter.map((item) => item[0]);
@@ -378,8 +385,8 @@ const updateUi = () => {
     const bitrateNumber = status.bitrate || 0;
     const state =
       status.state === "play"
-        ? "{green-fg}[play]{/green-fg}"
-        : "{blue-fg}[pause]{/blue-fg}";
+        ? "{blue-fg}[play]{/blue-fg}"
+        : "{magenta-fg}[pause]{/magenta-fg}";
     const bitrate = bitrateNumber + " kbps";
 
     client.sendCommand(cmd("currentsong", []), (err, msg) => {
@@ -388,12 +395,12 @@ const updateUi = () => {
       const artist = mpd.parseKeyValueMessage(msg)?.Artist || "No Artist";
       const selectedItem = feedList.getItem(feedList.selected)?.getContent();
       const content = `{bold}${state} ${songInfo} [${artist}]{/bold}`;
-      const instruments = `{bold}{blue-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/blue-fg}{/bold}`;
+      const instruments = `{bold}{magenta-fg}[${elapsed} Time] [${duration} Length] [${bitrate}]{/magenta-fg}{/bold}`;
 
       playerLeft.setContent(content);
       playerRight.setContent(instruments);
       description.setContent(
-        `{bold}{green-fg}${selectedItem}{/green-fg}{/bold}` +
+        `{bold}{magenta-fg}${selectedItem}{/magenta-fg}{/bold}` +
           "\n" +
           data.music[selectedItem]?.content,
       );
@@ -417,26 +424,31 @@ screen.key(["space"], (_ch, _key) => {
 
 screen.key("enter", () => {
   const selectedIndexFilter = filter.selected;
-  if (!data.filterOpen) {
-    const selectedItem = feedList.getItem(feedList.selected).getContent();
 
-    const id = data.music[selectedItem].id;
-    const list = Object.values(data.music);
-    const playList = list
-      .filter((item) => item.id >= id)
-      .map((item) => item.mp3);
-
-    infoHandler(`Add songs to playList`);
-    play(playList);
-  }
   if (selectedIndexFilter !== undefined) {
     if (data.filterOpen) {
       data.feed = data.filter[selectedIndexFilter][1];
-      data.filterOpen = false;
-      loadAndDisplayFeed(data.feed);
+      if (data.feed === "playlist") {
+        feedList.setLabel(` Press ? for help / Playlist `);
+        data.playListOpen = true;
+        loadAndDisplayPlaylist();
+      } else {
+        feedList.setLabel(` Press ? for help / ${data.feed} `);
+        loadAndDisplayFeed(data.feed);
+      }
       filter.hide();
     }
   }
+  if (data.playListOpen && !data.filterOpen) {
+    const selectedItem = feedList.getItem(feedList.selected).getContent();
+    const id = data.playList[selectedItem].id;
+
+    play(id);
+    data.musicState = true;
+
+    infoHandler(selectedItem);
+  }
+  data.filterOpen = false;
   screen.render();
 });
 
@@ -528,4 +540,73 @@ screen.key(["n"], (_ch, _key) => {
   });
 });
 
+screen.key(["p"], (_ch, _key) => {
+  client.sendCommand(cmd("previous", []), (err) => {
+    if (err) return errorHandling(err);
+    infoHandler("Play previous Song");
+  });
+});
+
+screen.key(["a"], (_ch, _key) => {
+  const selectedItem = feedList.getItem(feedList.selected).getContent();
+  const mp3 = data.music[selectedItem].mp3;
+  client.sendCommand(cmd("add", [mp3]), (err) => {
+    if (err) return errorHandling(err);
+    infoHandler(`Add ${selectedItem} to Playlist`);
+  });
+});
+
+screen.key(["d"], (_ch, _key) => {
+  if (!data.playListOpen) return;
+  const selectedItem = feedList.getItem(feedList.selected).getContent();
+  const id = data.playList[selectedItem].id;
+  client.sendCommand(cmd("delete", [id]), (err) => {
+    if (err) return errorHandling(err);
+    infoHandler(`Delete ${selectedItem} from Playlist`);
+    loadAndDisplayPlaylist();
+  });
+});
+
+screen.key(["c"], (_ch, _key) => {
+  client.sendCommand(cmd("clear", []), (err) => {
+    if (err) return errorHandling(err);
+    infoHandler("Clear Playlist");
+    feedList.setItems(["No Playlist"]);
+  });
+});
+
+const loadAndDisplayPlaylist = () => {
+  client.sendCommand(cmd("playlist", []), (err, msg) => {
+    if (err) return errorHandling(err);
+    const keys = msg
+      .split("\n")
+      .map((item) => item.split("/")[item.split("/").length - 1])
+      .filter((item) => item.length);
+
+    const links = msg
+      .split("\n")
+      .map((item) => item.split(" ")[1])
+      .filter((item) => item);
+
+    keys.forEach((item, i) => {
+      data.playList[item] = {
+        id: i,
+        content: "",
+        mp3: links[i],
+        pubDate: "",
+      };
+    });
+    feedList.setItems(keys);
+  });
+};
+
+client.on("ready", function () {
+  client.sendCommand(cmd("status", []), (err, msg) => {
+    if (err) return errorHandling(err);
+    const state = msg.split("\n")[8].split(" ")[1];
+
+    state === "play" ? (data.musicState = true) : (data.musicState = false);
+  });
+  loadAndDisplayPlaylist();
+});
 screen.render();
