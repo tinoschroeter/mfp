@@ -132,14 +132,14 @@ const feedList = blessed.list({
     ch: " ",
     style: { bg: "magenta" },
     track: {
-      style: { bg: "grey" },
+      style: { bg: "lightblue" },
     },
   },
   style: {
     item: { hover: { bg: "magenta" } },
     selected: { fg: "black", bg: "magenta", bold: true },
     label: {
-      fg: "lightgrey",
+      fg: "lightblue",
     },
   },
 });
@@ -160,7 +160,7 @@ const filter = blessed.list({
     ch: " ",
     style: { bg: "magenta" },
     track: {
-      style: { bg: "grey" },
+      style: { bg: "lightblue" },
     },
   },
   style: {
@@ -210,7 +210,7 @@ const description = blessed.box({
       fg: "white",
     },
     label: {
-      fg: "lightgrey",
+      fg: "lightblue",
     },
   },
 });
@@ -234,7 +234,7 @@ const playerLeft = blessed.box({
       fg: "white",
     },
     label: {
-      fg: "lightgrey",
+      fg: "lightblue",
     },
   },
 });
@@ -258,7 +258,7 @@ const playerRight = blessed.box({
       fg: "white",
     },
     label: {
-      fg: "lightgrey",
+      fg: "lightblue",
     },
   },
 });
@@ -294,7 +294,7 @@ const helpBox = blessed.box({
     border: { fg: "white" },
     fg: "white",
     label: {
-      fg: "lightgrey",
+      fg: "lightblue",
     },
   },
   hidden: true,
@@ -313,7 +313,7 @@ const errorBox = blessed.box({
     border: { fg: "red" },
     fg: "white",
     label: {
-      fg: "lightgrey",
+      fg: "lightblue",
     },
   },
   hidden: true,
@@ -331,7 +331,7 @@ const prompt = blessed.prompt({
     border: { fg: "white" },
     fg: "white",
     label: {
-      fg: "lightgrey",
+      fg: "lightblue",
     },
   },
   label: " Search ",
@@ -434,6 +434,7 @@ screen.key("enter", () => {
         loadAndDisplayPlaylist();
       } else {
         feedList.setLabel(` Press ? for help / ${data.feed} `);
+        data.playListOpen = false;
         loadAndDisplayFeed(data.feed);
       }
       filter.hide();
