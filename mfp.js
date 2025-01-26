@@ -133,12 +133,15 @@ const feedList = blessed.list({
     ch: " ",
     style: { bg: "magenta" },
     track: {
-      style: { bg: "lightblue" },
+      style: { bg: "magenta" },
     },
   },
   style: {
     item: { hover: { bg: "magenta" } },
-    selected: { fg: "black", bg: "magenta", bold: true },
+    selected: { fg: "black", bg: "light-magenta", bold: true },
+    border: {
+      fg: "magenta",
+    },
     label: {
       fg: "lightblue",
     },
@@ -167,6 +170,9 @@ const filter = blessed.list({
   style: {
     item: { hover: { bg: "magenta" } },
     selected: { fg: "black", bg: "magenta", bold: true },
+    border: {
+      fg: "magenta",
+    },
     label: {
       fg: "lightgrey",
     },
@@ -208,7 +214,7 @@ const description = blessed.box({
   style: {
     fg: "white",
     border: {
-      fg: "white",
+      fg: "magenta",
     },
     label: {
       fg: "lightblue",
@@ -232,7 +238,7 @@ const playerLeft = blessed.box({
   style: {
     fg: "white",
     border: {
-      fg: "white",
+      fg: "magenta",
     },
     label: {
       fg: "lightblue",
@@ -256,7 +262,7 @@ const playerRight = blessed.box({
   style: {
     fg: "white",
     border: {
-      fg: "white",
+      fg: "magenta",
     },
     label: {
       fg: "lightblue",
@@ -271,28 +277,29 @@ const helpBox = blessed.box({
   width: "50%",
   height: "60%",
   label: " Help ",
-  content: ` q|Esc          Detach mfp from the MPD server
- ENTER          Start playing at this file
- SPACE          Pause/Play
- /              Search
- j              Move down in the list
- k              Move up in the list
- gg             Jump to the first item in the list
- G              Jump to the last item in the list
- f              Open feed list
- h              Jump back 10 seconds
- l              Jump forward 10 seconds
- a              Add song to the playList 
- d              Delete song from the playList
- c              Remove the hole playList
- n              Plays next song in the playList
- p              Plays previous song in the playList
- ?              Help
- q              Quit
+  tags: true,
+  content: ` {bold}q|Esc{/bold}          {magenta-fg}Detach mfp from the MPD server{/magenta-fg}
+ {bold}ENTER          {/bold}{magenta-fg}Start playing at this file{/magenta-fg}
+ {bold}SPACE          {/bold}{magenta-fg}Pause/Play{/magenta-fg}
+ {bold}/              {/bold}{magenta-fg}Search{/magenta-fg}
+ {bold}j              {/bold}{magenta-fg}Move down in the list{/magenta-fg}
+ {bold}k              {/bold}{magenta-fg}Move up in the list{/magenta-fg}
+ {bold}gg             {/bold}{magenta-fg}Jump to the first item in the list{/magenta-fg}
+ {bold}G              {/bold}{magenta-fg}Jump to the last item in the list{/magenta-fg}
+ {bold}f              {/bold}{magenta-fg}Open feed list{/magenta-fg}
+ {bold}h              {/bold}{magenta-fg}Jump back 10 seconds{/magenta-fg}
+ {bold}l              {/bold}{magenta-fg}Jump forward 10 seconds{/magenta-fg}
+ {bold}a              {/bold}{magenta-fg}Add song to the playList {/magenta-fg}
+ {bold}d              {/bold}{magenta-fg}Delete song from the playList{/magenta-fg}
+ {bold}c              {/bold}{magenta-fg}Remove the hole playList{/magenta-fg}
+ {bold}n              {/bold}{magenta-fg}Plays next song in the playList{/magenta-fg}
+ {bold}p              {/bold}{magenta-fg}Plays previous song in the playList{/magenta-fg}
+ {bold}?              {/bold}{magenta-fg}Help{/magenta-fg}
+ {bold}q              {/bold}{magenta-fg}Quit{/magenta-fg}
 `,
   border: { type: "line" },
   style: {
-    border: { fg: "white" },
+    border: { fg: "magenta" },
     fg: "white",
     label: {
       fg: "lightblue",
@@ -329,7 +336,7 @@ const prompt = blessed.prompt({
     type: "line",
   },
   style: {
-    border: { fg: "white" },
+    border: { fg: "magenta" },
     fg: "white",
     label: {
       fg: "lightblue",
