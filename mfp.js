@@ -15,6 +15,7 @@ const data = {
   music: {},
   playList: {},
   playListOpen: true,
+  playListEmpty: true,
   musicState: true,
   filterOpen: false,
   feed: "https://musicforprogramming.net/rss.xml",
@@ -559,7 +560,12 @@ screen.key(["a"], (_ch, _key) => {
 
 screen.key(["d"], (_ch, _key) => {
   if (!data.playListOpen) return;
-  const selectedItem = feedList.getItem(feedList.selected).getContent();
+  const selectedItem = feedList.getItem(feedList.selected)?.getContent();
+
+  if (!selectedItem) {
+    infoHandler("Nothing to delete");
+    return;
+  }
   const id = data.playList[selectedItem].id;
   client.sendCommand(cmd("delete", [id]), (err) => {
     if (err) return errorHandling(err);
@@ -589,6 +595,7 @@ const loadAndDisplayPlaylist = () => {
       .map((item) => item.split(" ")[1])
       .filter((item) => item);
 
+    data.playListEmpty = keys.length;
     keys.forEach((item, i) => {
       data.playList[item] = {
         id: i,
@@ -609,5 +616,13 @@ client.on("ready", function () {
     state === "play" ? (data.musicState = true) : (data.musicState = false);
   });
   loadAndDisplayPlaylist();
+
+  setTimeout(() => {
+    if (!data.playListEmpty) {
+      screen.append(filter);
+      data.filterOpen = true;
+      filter.show();
+    }
+  }, 200);
 });
 screen.render();
