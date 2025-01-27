@@ -17,6 +17,7 @@ const data = {
   playListOpen: true,
   playListEmpty: true,
   musicState: true,
+  currentSongIndex: 0,
   filterOpen: false,
   feed: "https://musicforprogramming.net/rss.xml",
   filter: process.env.MFP_FEED || [
@@ -58,7 +59,7 @@ const errorHandling = (message) => {
 const infoHandler = (message) => {
   screen.append(infoBox);
   infoBox.show();
-  infoBox.setContent(" " + message + " ");
+  infoBox.setContent(" {green-fg}" + message + "{/green-fg} ");
   screen.render();
 
   setTimeout(() => {
@@ -124,6 +125,7 @@ const feedList = blessed.list({
   width: "100%",
   height: "71%",
   keys: true,
+  tags: true,
   label: " Press ? for help / Playlist ",
   border: { type: "line" },
   padding: { left: 1 },
@@ -355,6 +357,7 @@ screen.append(playerRight);
 screen.append(description);
 screen.append(prompt);
 
+const removeAnsiSequences = (input) => input.replace(/\u001b\[.*?m/g, "");
 const loadAndDisplayFeed = async (url) => {
   try {
     delete data.music;
@@ -370,6 +373,10 @@ const loadAndDisplayFeed = async (url) => {
       return item.title;
     });
     //logger(JSON.stringify(data));
+    const keys = Object.keys(data.music);
+    feedList.setLabel(
+      ` Press ? for help / ${data.feed} (${keys.length} items) `,
+    );
     feedList.setItems(items);
     screen.render();
   } catch (error) {
@@ -437,20 +444,22 @@ screen.key("enter", () => {
     if (data.filterOpen) {
       data.feed = data.filter[selectedIndexFilter][1];
       if (data.feed === "playlist") {
-        feedList.setLabel(` Press ? for help / Playlist `);
         data.playListOpen = true;
         loadAndDisplayPlaylist();
       } else {
-        feedList.setLabel(` Press ? for help / ${data.feed} `);
         data.playListOpen = false;
         loadAndDisplayFeed(data.feed);
+        const keys = Object.keys(data.music);
+        feedList.setLabel(
+          ` Press ? for help / ${data.feed} (${keys.length} items) `,
+        );
       }
       filter.hide();
     }
   }
   if (data.playListOpen && !data.filterOpen) {
     const selectedItem = feedList.getItem(feedList.selected).getContent();
-    const id = data.playList[selectedItem].id;
+    const id = data.playList[removeAnsiSequences(selectedItem)].id;
 
     play(id);
     data.musicState = true;
@@ -501,7 +510,7 @@ screen.key(["g"], (_ch, _key) => {
   }
 });
 
-screen.program.on("keypress", function (_ch, key) {
+screen.program.on("keypress", (_ch, key) => {
   if (key.name === "g" && key.shift) {
     feedList.select(feedList.items.length - 1);
     screen.render();
@@ -611,18 +620,37 @@ const loadAndDisplayPlaylist = () => {
         pubDate: "",
       };
     });
-    feedList.setItems(keys);
+
+    const list = keys.map((item, index) => {
+      return index == data.currentSongIndex
+        ? `{green-fg}${item}{/green-fg}`
+        : item;
+    });
+    feedList.setLabel(` Press ? for help / Playlist (${keys.length} items) `);
+    feedList.setItems(list);
   });
 };
 
-client.on("ready", function () {
+client.on("system", (name) => {
+  client.sendCommand(cmd("status", []), (err, msg) => {
+    const { song } = mpd.parseKeyValueMessage(msg);
+
+    if (data.playListOpen) {
+      data.currentSongIndex = song;
+      loadAndDisplayPlaylist();
+    }
+  });
+});
+
+client.on("ready", () => {
   client.sendCommand(cmd("status", []), (err, msg) => {
     if (err) return errorHandling(err);
-    const state = msg.split("\n")[8].split(" ")[1];
+    const { state, song } = mpd.parseKeyValueMessage(msg);
 
+    data.currentSongIndex = song;
     state === "play" ? (data.musicState = true) : (data.musicState = false);
+    loadAndDisplayPlaylist();
   });
-  loadAndDisplayPlaylist();
 
   setTimeout(() => {
     if (!data.playListEmpty) {
