@@ -12,7 +12,8 @@ Inspired by [musicforprogramming.net](https://musicforprogramming.net/latest/)
 
 ### mpd
 
-[Music_Player_Daemon Wikipedia](https://en.wikipedia.org/wiki/Music_Player_Daemon)
+- [Music_Player_Daemon Wikipedia](https://en.wikipedia.org/wiki/Music_Player_Daemon)
+- [MPD Docs](https://mpd.readthedocs.io/en/latest/protocol.html)
 
 ```bash
 # install Music Player Daemon
